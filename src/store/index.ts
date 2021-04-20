@@ -10,7 +10,6 @@ export default new Vuex.Store({
     socket: io(process.env.VUE_APP_SERVER_URL),
     serverUrl: process.env.VUE_APP_SERVER_URL,
     chats: [],
-    userID: localStorage.getItem('user_id'),
     currentUser: {}
   },
   mutations: {
@@ -26,19 +25,15 @@ export default new Vuex.Store({
       return axios.post(`${state.serverUrl}/login`, data)
     },
     doLogout ({ state }): Promise<Response> {
-      return axios.get(`${state.serverUrl}/logout/${state.userID}`)
+      const id: string | null = localStorage.getItem('user_id')
+      return axios.get(`${state.serverUrl}/logout/${id}`)
     },
     fetchUser ({ state }): Promise<Response> {
-      return axios.get(`${state.serverUrl}/users/${state.userID}`)
+      const id: string | null = localStorage.getItem('user_id')
+      return axios.get(`${state.serverUrl}/users/${id}`)
     },
-    fetchChats ({ commit, state }): void {
-      axios.get(`${state.serverUrl}/messages`)
-        .then(({ data }) => {
-          commit('SET_CHATS', data.results)
-        })
-        .catch((err: Error) => {
-          console.log(err)
-        })
+    fetchChats ({ state }): Promise<Response> {
+      return axios.get(`${state.serverUrl}/messages`)
     },
     sendMessage ({ state }, data): Promise<Response> {
       return axios.post(`${state.serverUrl}/messages`, data)

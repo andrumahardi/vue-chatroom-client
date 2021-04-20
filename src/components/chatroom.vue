@@ -4,10 +4,10 @@
       <div
         v-for="chat in chats"
         :key="chat._id"
-        :class="chat.sender_id === userID ? 'chat chat__user' : 'chat chat__other'">
+        :class="chat.sender_id === currentUser._id ? 'chat chat__user' : 'chat chat__other'">
         <div>
           <h5
-            v-if="chat.sender_id !== userID"
+            v-if="chat.sender_id !== currentUser._id"
             class="chat__header">
             {{chat.sender}}
           </h5>
@@ -54,9 +54,6 @@ export default Vue.extend({
     chats (): Array<Chat> {
       return this.$store.state.chats
     },
-    userID (): string {
-      return this.$store.state.userID
-    },
     currentUser (): { [key: string]: string } {
       return this.$store.state.currentUser
     },
@@ -71,15 +68,18 @@ export default Vue.extend({
       if (this.text !== '') {
         const payload = {
           text: this.text,
-          sender_id: this.userID,
-          sender: this.currentUser.username
+          sender_id: this.currentUser._id,
+          sender: this.currentUser.username,
+          room: this.currentUser.room
         }
 
         this.$store.dispatch('sendMessage', payload)
           .then(({ data }) => {
-            this.socket.emit('send message', [...this.chats, data])
+            this.socket.emit('send message', data)
             this.$store.commit('SET_CHATS', [...this.chats, data])
             this.text = ''
+
+            this.scrollDown()
           })
           .catch((err: Error) => {
             console.log(err)
@@ -90,19 +90,20 @@ export default Vue.extend({
       const chatContainer = this.$el.querySelector('#chat-container')
 
       if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight
+        setTimeout(() => {
+          chatContainer.scrollTop = chatContainer.scrollHeight
+        }, 500)
       }
     }
   },
   mounted (): void {
-    setTimeout(() => {
-      this.scrollDown()
-    }, 500)
+    this.scrollDown()
 
-    this.socket.on('other sent message', (chats: Array<Chat>) => {
-      this.$store.commit('SET_CHATS', chats)
-
-      this.scrollDown()
+    this.socket.on('other sent message', (chat: Chat) => {
+      if (chat.room === this.currentUser.room) {
+        this.$store.commit('SET_CHATS', [...this.chats, chat])
+        this.scrollDown()
+      }
     })
   }
 })
@@ -164,6 +165,7 @@ export default Vue.extend({
     &__user > div, &__other > div {
       width: fit-content;
       max-width: 45%;
+      word-break: break-word;
     }
 
     &__user {
@@ -209,6 +211,7 @@ export default Vue.extend({
     input {
       width: calc(100% - 3.5rem);
       border: none;
+      padding-left: $padding-amount;
       background: transparent;
 
       &::placeholder {

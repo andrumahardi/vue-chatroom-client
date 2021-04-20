@@ -2,7 +2,7 @@
   <section class="home">
     <header>
       <button @click="logout()">Exit</button>
-      <h3>{{room}}</h3>
+      <h3>{{currentUser.room}}</h3>
     </header>
     <main>
       <chatroom />
@@ -19,8 +19,8 @@ export default Vue.extend({
     chatroom: Chatroom
   },
   computed: {
-    room () {
-      return this.$store.state.currentUser.room
+    currentUser () {
+      return this.$store.state.currentUser
     },
     chats () {
       return this.$store.state.chats
@@ -32,6 +32,7 @@ export default Vue.extend({
         .then(() => {
           localStorage.removeItem('user_id')
           this.$store.commit('SET_CURRENT_USER', {})
+          this.$store.commit('SET_CHATS', [])
           this.$router.push('/login')
         })
         .catch((err) => {
@@ -46,14 +47,28 @@ export default Vue.extend({
         .catch((err: Error) => {
           console.log(err)
         })
+    },
+    async fetchData () {
+      Promise.all([
+        this.$store.dispatch('fetchUser'),
+        this.$store.dispatch('fetchChats')
+      ])
+        .then((responses) => {
+          const [user, chats] = responses
+          const roomChats = chats.data.results
+            .filter((chat: { [key: string]: string }) => chat.room === user.data.room)
+
+          this.$store.commit('SET_CURRENT_USER', user.data)
+          this.$store.commit('SET_CHATS', roomChats)
+        })
+        .catch((err: Error) => {
+          console.log(err)
+        })
     }
   },
-  mounted (): void {
-    if (!this.room) {
-      this.fetchUser()
-    }
-    if (this.chats.length === 0) {
-      this.$store.dispatch('fetchChats')
+  created (): void {
+    if (!this.currentUser.room || this.chats.length === 0) {
+      this.fetchData()
     }
   }
 })
