@@ -7,8 +7,8 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    socket: io('http://localhost:3000/'),
-    serverUrl: 'http://localhost:3000',
+    socket: io(process.env.VUE_APP_SERVER_URL),
+    serverUrl: process.env.VUE_APP_SERVER_URL,
     chats: [],
     userID: localStorage.getItem('user_id'),
     currentUser: {}
