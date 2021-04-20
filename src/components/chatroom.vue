@@ -78,6 +78,7 @@ export default Vue.extend({
         this.$store.dispatch('sendMessage', payload)
           .then(({ data }) => {
             this.socket.emit('send message', [...this.chats, data])
+            this.$store.commit('SET_CHATS', [...this.chats, data])
             this.text = ''
           })
           .catch((err: Error) => {
